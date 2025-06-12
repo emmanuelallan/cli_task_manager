@@ -2,22 +2,16 @@
 require 'securerandom'
 
 require_relative '../models/user'
-require_relative '../persistence/file_store'
+require_relative '../persistence/database_store'
 require_relative '../core/errors'
 
 module TaskManager
   module Services
     # handles user authentication and management
     class UserService
-      attr_reader :file_store
-      attr_accessor :users
-
-      # sets up service with storage
-      # @param file_store [FileStore] storage handler
-      def initialize(file_store:)
-        @file_store = file_store
-        @users = @file_store.load_users
-        puts "loaded #{@users.size} users"
+      # sets up service
+      def initialize
+        # No need for db_store parameter as we're using ActiveRecord directly
       end
 
       # creates new user account
@@ -30,13 +24,14 @@ module TaskManager
           raise TaskManager::UsernameAlreadyExistsError, "username '#{username}' is already taken"
         end
 
-        new_id = SecureRandom.uuid
-        user = TaskManager::Models::User.new(id: new_id, username: username)
+        user = TaskManager::Models::User.new(username: username)
         user.set_password(password)
         
-        @users << user
-        save_all_users
-        user
+        if user.save
+          user
+        else
+          raise TaskManager::InvalidInputError, "failed to create user: #{user.errors.full_messages.join(', ')}"
+        end
       end
 
       # validates user credentials
@@ -63,25 +58,20 @@ module TaskManager
       # @param id [String] user identifier
       # @return [User, nil] matching user or nil
       def find_user_by_id(id)
-        @users.find { |user| user.id == id }
+        TaskManager::Models::User.find_by(id: id)
       end
 
       # finds user by username
       # @param username [String] username to find
       # @return [User, nil] matching user or nil
       def find_user_by_username(username)
-        @users.find { |user| user.username.downcase == username.downcase }
-      end
-
-      # saves users to storage
-      def save_all_users
-        @file_store.save_users(@users)
+        TaskManager::Models::User.find_by('LOWER(username) = ?', username.downcase)
       end
 
       # gets copy of users list
       # @return [Array<User>] list of users
       def get_all_users
-        @users.dup
+        TaskManager::Models::User.all
       end
     end
   end
