@@ -28,7 +28,7 @@ require_relative 'task_manager/strategies/sorting/priority_sort_strategy'
 
 # notifications
 require_relative 'task_manager/notifications/notifier'
-require_relative 'task_manager/notifications/email_sender'
+require_relative 'task_manager/notifications/system_notifier'
 
 # user interface
 require_relative 'task_manager/cli'

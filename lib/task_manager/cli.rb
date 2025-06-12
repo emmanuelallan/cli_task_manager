@@ -89,6 +89,10 @@ module TaskManager
         @task_service.set_current_user_id(user.id)
         TaskManager::Config::ApplicationConfig.instance.set_session_user_id(user.id)
         display_success("Logged in as '#{user.username}'!")
+        
+        # Check for overdue and due soon tasks after login
+        check_task_notifications
+        
         list
       rescue TaskManager::UserNotFoundError, TaskManager::AuthenticationError => e
         display_error(e.message)
@@ -391,6 +395,12 @@ module TaskManager
       end
     end
 
+    desc "notifications", "Check for overdue and due soon tasks"
+    def notifications
+      authenticate_user!
+      check_task_notifications
+    end
+
     # --- Help and Default Commands ---
 
     desc "whoami", "Display the currently logged in user"
@@ -425,6 +435,18 @@ module TaskManager
           else
             config.clear_session
           end
+        end
+      end
+
+      def check_task_notifications
+        overdue_count = @task_service.check_overdue_tasks.count
+        due_soon_count = @task_service.check_due_soon_tasks.count
+        
+        if overdue_count > 0 || due_soon_count > 0
+          puts "\n--- Task Notifications ---".colorize(:yellow)
+          puts "Overdue tasks: #{overdue_count}".colorize(overdue_count > 0 ? :red : :green)
+          puts "Tasks due soon: #{due_soon_count}".colorize(due_soon_count > 0 ? :yellow : :green)
+          puts "------------------------".colorize(:yellow)
         end
       end
 

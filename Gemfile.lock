@@ -34,10 +34,13 @@ GEM
     drb (2.2.3)
     faker (2.23.0)
       i18n (>= 1.8.11, < 2)
+    ffi (1.17.2-x86_64-linux-gnu)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     json (2.12.2)
     language_server-protocol (3.17.0.5)
+    libnotify (0.9.4)
+      ffi (>= 1.0.11)
     lint_roller (1.1.0)
     logger (1.7.0)
     minitest (5.25.5)
@@ -122,6 +125,7 @@ DEPENDENCIES
   colorize
   faker (~> 2.18)
   json
+  libnotify (~> 0.9)
   logger
   observer
   psych

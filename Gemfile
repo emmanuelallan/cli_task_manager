@@ -25,6 +25,10 @@ gem 'activerecord'
 # Logging
 gem 'logger' # Ruby's built-in Logger class (good to list for clarity)
 
+# System Notifications
+# gem 'terminal-notifier', '~> 2.0' # For macOS desktop notifications (uncomment if on macOS)
+gem 'libnotify', '~> 0.9' # For Linux desktop notifications
+
 # Development & Testing Gems
 group :development, :test do
   gem 'rspec', '~> 3.10' # Testing framework
@@ -36,7 +40,6 @@ end
 
 # Optional: Advanced features
 # gem 'rufus-scheduler' # For background task reminders
-# gem 'terminal-notifier' # For macOS desktop notifications (platform specific)
 # gem 'tty-spinner' # For progress indicators
 
 # For UUID generation (already part of standard library, but good to be explicit if needed)

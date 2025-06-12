@@ -10,17 +10,27 @@ require_relative '../strategies/filtering/due_date_filter_strategy'
 require_relative '../strategies/sorting/due_date_sort_strategy'
 require_relative '../strategies/sorting/priority_sort_strategy'
 require_relative '../notifications/notifier'
-require_relative '../notifications/email_sender'
+require_relative '../notifications/system_notifier'
 
 module TaskManager
   module Services
     # handles task management operations
     class TaskService
-      attr_reader :current_user_id
+      attr_reader :current_user_id, :notifier, :logger
 
-      # sets up service
+      # sets up service with notification system
       def initialize
         @current_user_id = nil
+        @notifier = TaskManager::Notifications::Notifier.new
+        @logger = Logger.new($stdout)
+        @logger.level = Logger::INFO
+        @logger.formatter = proc do |severity, datetime, progname, msg|
+          "#{datetime.strftime('%Y-%m-%d %H:%M:%S')} [TaskService] #{msg}\n"
+        end
+        
+        # Add system notifier as observer
+        system_notifier = TaskManager::Notifications::SystemNotifier.new
+        @notifier.add_observer(system_notifier)
       end
 
       # sets current user id for task operations
@@ -41,6 +51,7 @@ module TaskManager
         )
 
         if task.save
+          notify_task_event(task, :task_created)
           task
         else
           raise TaskManager::InvalidInputError, "failed to create task: #{task.errors.full_messages.join(', ')}"
@@ -93,6 +104,7 @@ module TaskManager
         task = find_task_by_id(id)
         
         if task.update(attributes)
+          notify_task_event(task, :task_updated)
           task
         else
           raise TaskManager::InvalidInputError, "failed to update task: #{task.errors.full_messages.join(', ')}"
@@ -104,7 +116,9 @@ module TaskManager
       # @return [Task] updated task
       # @raise [TaskNotFoundError] if task not found
       def complete_task(id)
-        update_task(id, status: 'completed', completed_at: Time.now)
+        task = update_task(id, status: 'completed', completed_at: Time.now)
+        notify_task_event(task, :task_completed)
+        task
       end
 
       # marks task as pending
@@ -112,7 +126,9 @@ module TaskManager
       # @return [Task] updated task
       # @raise [TaskNotFoundError] if task not found
       def reopen_task(id)
-        update_task(id, status: 'pending', completed_at: nil)
+        task = update_task(id, status: 'pending', completed_at: nil)
+        notify_task_event(task, :task_reopened)
+        task
       end
 
       # deletes task
@@ -121,6 +137,35 @@ module TaskManager
       def delete_task(id)
         task = find_task_by_id(id)
         task.destroy
+        notify_task_event(task, :task_deleted)
+      end
+
+      # checks for overdue tasks and sends notifications
+      def check_overdue_tasks
+        overdue_tasks = TaskManager::Models::Task.where(
+          user_id: @current_user_id,
+          status: 'pending'
+        ).where('due_date < ?', Date.today)
+
+        overdue_tasks.each do |task|
+          notify_task_event(task, :task_overdue_check)
+        end
+
+        overdue_tasks.to_a
+      end
+
+      # checks for tasks due soon and sends notifications
+      def check_due_soon_tasks
+        due_soon_tasks = TaskManager::Models::Task.where(
+          user_id: @current_user_id,
+          status: 'pending'
+        ).where('due_date BETWEEN ? AND ?', Date.today, Date.today + 1)
+
+        due_soon_tasks.each do |task|
+          notify_task_event(task, :task_due_soon)
+        end
+
+        due_soon_tasks.to_a
       end
 
       # exports tasks to file
@@ -176,6 +221,19 @@ module TaskManager
           end
         else
           raise TaskManager::InvalidInputError, "unsupported import format: #{format}"
+        end
+      end
+
+      private
+
+      # notifies observers of task events
+      # @param task [Task] task that triggered the event
+      # @param event_type [Symbol] type of event
+      def notify_task_event(task, event_type)
+        begin
+          @notifier.update(task, event_type)
+        rescue => e
+          @logger.error("Notification failed for event #{event_type}: #{e.message}")
         end
       end
     end
