@@ -1,0 +1,16 @@
+# task manager global configuration
+
+# data storage location (relative to user home)
+data_directory_name: .task_manager_data
+
+# log file name
+log_file_name: app.log
+
+# persistence format (json|yaml)
+default_file_format: json
+
+# task list sort order (created_at|due_date|priority)
+default_sort_order: created_at
+
+# session storage file
+session_file_name: session.yml
