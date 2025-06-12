@@ -12,7 +12,7 @@ module TaskManager
         @platform = detect_platform
         @logger = Logger.new($stdout)
         @logger.level = Logger::INFO
-        @logger.formatter = proc do |severity, datetime, progname, msg|
+        @logger.formatter = proc do |_severity, datetime, _progname, msg|
           "#{datetime.strftime('%Y-%m-%d %H:%M:%S')} [SystemNotifier] #{msg}\n"
         end
       end
@@ -107,22 +107,20 @@ module TaskManager
       # @param message [String] notification message
       # @param urgency [String] notification urgency (low, normal, critical)
       def send_notification(title:, message:, urgency: 'normal')
-        begin
-          case @platform
-          when 'macos'
-            send_macos_notification(title: title, message: message, urgency: urgency)
-          when 'linux'
-            send_linux_notification(title: title, message: message, urgency: urgency)
-          when 'windows'
-            send_windows_notification(title: title, message: message, urgency: urgency)
-          else
-            send_console_notification(title: title, message: message, urgency: urgency)
-          end
-        rescue => e
-          log_error(e)
-          # Fallback to console notification
+        case @platform
+        when 'macos'
+          send_macos_notification(title: title, message: message, urgency: urgency)
+        when 'linux'
+          send_linux_notification(title: title, message: message, urgency: urgency)
+        when 'windows'
+          send_windows_notification(title: title, message: message, urgency: urgency)
+        else
           send_console_notification(title: title, message: message, urgency: urgency)
         end
+      rescue StandardError => e
+        log_error(e)
+        # Fallback to console notification
+        send_console_notification(title: title, message: message, urgency: urgency)
       end
 
       # sends macOS notification using terminal-notifier
@@ -131,13 +129,13 @@ module TaskManager
       # @param urgency [String] notification urgency
       def send_macos_notification(title:, message:, urgency:)
         require 'terminal-notifier'
-        
+
         TerminalNotifier.notify(
           message,
           title: title,
           sound: urgency == 'critical' ? 'Basso' : 'default'
         )
-        
+
         @logger.info("macOS notification sent: #{title}")
       end
 
@@ -147,14 +145,14 @@ module TaskManager
       # @param urgency [String] notification urgency
       def send_linux_notification(title:, message:, urgency:)
         require 'libnotify'
-        
+
         Libnotify.show(
           summary: title,
           body: message,
           urgency: map_urgency(urgency),
           timeout: urgency == 'critical' ? 0 : 5000
         )
-        
+
         @logger.info("Linux notification sent: #{title}")
       end
 
@@ -186,7 +184,7 @@ module TaskManager
           [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("TaskManager").Show($toast)
         POWERSHELL
 
-        system("powershell", "-Command", script)
+        system('powershell', '-Command', script)
         @logger.info("Windows notification sent: #{title}")
       end
 
@@ -206,8 +204,8 @@ module TaskManager
         puts "Message: #{message}".colorize(:white)
         puts "Urgency: #{urgency.upcase}".colorize(urgency_color)
         puts "Platform: #{@platform}".colorize(:light_black)
-        puts "------------------------".colorize(urgency_color)
-        
+        puts '------------------------'.colorize(urgency_color)
+
         @logger.info("Console notification sent: #{title}")
       end
 
@@ -215,7 +213,7 @@ module TaskManager
       # @return [String] platform name (macos, linux, windows, unknown)
       def detect_platform
         host_os = RbConfig::CONFIG['host_os']
-        
+
         case host_os
         when /darwin/i
           'macos'
@@ -259,4 +257,4 @@ module TaskManager
       end
     end
   end
-end 
+end

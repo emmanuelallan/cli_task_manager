@@ -17,7 +17,7 @@ module TaskManager
       def update(observable_task, event_type)
         @logger ||= Logger.new($stdout)
         @logger.info("Notifier: Task '#{observable_task.title}' triggered event '#{event_type}'.")
-        
+
         changed
         notify_observers(observable_task, event_type)
       end

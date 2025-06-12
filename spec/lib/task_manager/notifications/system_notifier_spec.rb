@@ -34,7 +34,7 @@ RSpec.describe TaskManager::Notifications::SystemNotifier do
 
     it 'detects the current platform' do
       expect(system_notifier.platform).to be_a(String)
-      expect(['macos', 'linux', 'windows', 'unknown']).to include(system_notifier.platform)
+      expect(%w[macos linux windows unknown]).to include(system_notifier.platform)
     end
   end
 
@@ -132,9 +132,9 @@ RSpec.describe TaskManager::Notifications::SystemNotifier do
     it 'handles notification failures gracefully' do
       # Mock platform to trigger a notification method that might fail
       allow(system_notifier).to receive(:platform).and_return('linux')
-      
+
       # The update method should not raise errors even if underlying notification fails
       expect { system_notifier.update(task, :task_completed) }.not_to raise_error
     end
   end
-end 
+end

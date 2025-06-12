@@ -36,7 +36,7 @@ module TaskManager
           YAML.load_file(config_path)
         rescue Psych::SyntaxError => e
           raise TaskManager::FileError, "Failed to parse application config file: #{e.message}"
-        rescue => e
+        rescue StandardError => e
           raise TaskManager::FileError, "An unexpected error occurred loading config: #{e.message}"
         end
       end
@@ -82,10 +82,11 @@ module TaskManager
       # @return [String, nil] Stored user ID or nil if no session exists
       def load_session
         return nil unless File.exist?(@session_file_path)
+
         begin
           session_data = YAML.load_file(@session_file_path)
           session_data&.fetch('current_user_id', nil)
-        rescue StandardError => e
+        rescue StandardError
           nil
         end
       end

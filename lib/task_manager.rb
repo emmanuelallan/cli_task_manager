@@ -35,5 +35,5 @@ require_relative 'task_manager/cli'
 
 # top-level namespace
 module TaskManager
-  VERSION = "0.1.0".freeze
+  VERSION = '0.1.0'.freeze
 end

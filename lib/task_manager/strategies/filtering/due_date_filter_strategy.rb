@@ -24,6 +24,7 @@ module TaskManager
 
           tasks.select do |task|
             next false unless task.due_date # skip tasks without dates
+
             matches_date_criteria?(task.due_date)
           end
         end
@@ -43,6 +44,7 @@ module TaskManager
           return date == @on_date if @on_date
           return false if @before_date && date > @before_date
           return false if @after_date && date < @after_date
+
           true
         end
       end

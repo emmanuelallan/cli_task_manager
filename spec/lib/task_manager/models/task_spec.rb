@@ -6,7 +6,7 @@ RSpec.describe TaskManager::Models::Task do
   let(:title) { 'Test Task' }
   let(:description) { 'This is a test task' }
   let(:due_date) { Date.today + 7 }
-  let(:tags) { ['test', 'important'] }
+  let(:tags) { %w[test important] }
   let(:priority) { 'high' }
   let(:recurrence) { { 'frequency' => 'daily', 'interval' => 1 } }
 
@@ -78,7 +78,7 @@ RSpec.describe TaskManager::Models::Task do
         tags: ['tag1, tag2', 'tag3', 'tag1']
       )
       task.save!
-      expect(task.tags).to match_array(['tag1', 'tag2', 'tag3'])
+      expect(task.tags).to match_array(%w[tag1 tag2 tag3])
     end
   end
 
@@ -124,7 +124,7 @@ RSpec.describe TaskManager::Models::Task do
     end
 
     it 'filters tasks by tag' do
-      task = described_class.create!(
+      described_class.create!(
         title: 'Tagged Task',
         user_id: user_id,
         description: 'A task with tags',
@@ -197,7 +197,7 @@ RSpec.describe TaskManager::Models::Task do
         title: title,
         user_id: user_id,
         description: description,
-        tags: ['test', 'important']
+        tags: %w[test important]
       )
     end
 

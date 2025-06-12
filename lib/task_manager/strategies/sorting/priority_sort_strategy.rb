@@ -36,7 +36,11 @@ module TaskManager
         # compares task completion status
         # @return [Integer] comparison result (-1, 0, 1)
         def compare_completion_status(a, b)
-          a.completed == b.completed ? 0 : (a.completed ? 1 : -1)
+          if a.completed == b.completed
+            0
+          else
+            (a.completed ? 1 : -1)
+          end
         end
 
         # compares task priorities using priority map

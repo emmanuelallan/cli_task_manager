@@ -5,12 +5,12 @@ require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 
 # Define a default task (e.g., run tests and rubocop)
-task :default => [:test, :lint]
+task default: %i[test lint]
 
 # RSpec task
 RSpec::Core::RakeTask.new(:test) do |t|
   t.pattern = 'spec/**/*_spec.rb'
-  t.rspec_opts = "--format documentation" # Nicer output
+  t.rspec_opts = '--format documentation' # Nicer output
 end
 
 # RuboCop task
@@ -20,14 +20,14 @@ RuboCop::RakeTask.new(:lint) do |task|
 end
 
 # Task to run all tests and check linting without auto-correction
-desc "Run all tests and linting"
-task :ci => [:test, :lint]
+desc 'Run all tests and linting'
+task ci: %i[test lint]
 
 # Task to generate SimpleCov report
 task :coverage do
   ENV['COVERAGE'] = 'true'
   Rake::Task['test'].execute
-  puts "Coverage report generated in coverage/index.html"
+  puts 'Coverage report generated in coverage/index.html'
 end
 
 # Add other custom tasks as needed, e.g.:

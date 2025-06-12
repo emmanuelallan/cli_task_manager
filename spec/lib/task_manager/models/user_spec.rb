@@ -21,27 +21,27 @@ RSpec.describe TaskManager::Models::User do
   describe 'preferences' do
     it 'serializes preferences as JSON' do
       puts "\nDEBUG: Starting preferences test"
-      
+
       # Create user with username
       user = described_class.new(username: username)
       puts "DEBUG: User after new: #{user.inspect}"
-      
+
       # Set password
       user.set_password(password)
       puts "DEBUG: User after set_password: #{user.inspect}"
-      
+
       # Set preferences
       user.preferences = preferences
       puts "DEBUG: User after setting preferences: #{user.inspect}"
-      
+
       # Save user
       user.save!
       puts "DEBUG: User after save: #{user.inspect}"
-      
+
       # Reload user from database
       reloaded_user = described_class.find(user.id)
       puts "DEBUG: Reloaded user: #{reloaded_user.inspect}"
-      
+
       expect(reloaded_user.preferences).to eq(preferences)
     end
   end

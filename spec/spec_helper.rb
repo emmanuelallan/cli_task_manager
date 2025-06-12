@@ -1,11 +1,13 @@
 require 'bundler/setup'
 require 'simplecov' # For code coverage, must be at the very top
-SimpleCov.start do
-  add_filter "/spec/"
-  add_filter "/bin/"
-  add_filter "/config/"
-  add_filter "/data/"
-end if ENV['COVERAGE']
+if ENV['COVERAGE']
+  SimpleCov.start do
+    add_filter '/spec/'
+    add_filter '/bin/'
+    add_filter '/config/'
+    add_filter '/data/'
+  end
+end
 
 # Load your application's main entry point
 require_relative '../lib/task_manager'
@@ -20,7 +22,7 @@ require_relative '../lib/task_manager/persistence/database_store'
 # RSpec configuration
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
-  config.example_status_persistence_file_path = ".rspec_status"
+  config.example_status_persistence_file_path = '.rspec_status'
 
   # Disable RSpec exposing methods globally on `Module` and `main`
   config.disable_monkey_patching!
@@ -36,7 +38,7 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.filter_run_when_matching :focus
-  config.example_status_persistence_file_path = "spec/examples.txt"
+  config.example_status_persistence_file_path = 'spec/examples.txt'
 
   config.order = :random
   Kernel.srand config.seed
@@ -46,7 +48,7 @@ RSpec.configure do |config|
     # Clean up any test database files
     test_db_path = File.join(ENV['TMPDIR'] || '/tmp', 'task_manager_test', 'task_manager.db')
     FileUtils.rm_rf(File.dirname(test_db_path)) if File.exist?(test_db_path)
-    
+
     # Ensure database connection is established
     TaskManager::Persistence::DatabaseStore.establish_connection
   end

@@ -24,10 +24,10 @@ module TaskManager
         @notifier = TaskManager::Notifications::Notifier.new
         @logger = Logger.new($stdout)
         @logger.level = Logger::INFO
-        @logger.formatter = proc do |severity, datetime, progname, msg|
+        @logger.formatter = proc do |_severity, datetime, _progname, msg|
           "#{datetime.strftime('%Y-%m-%d %H:%M:%S')} [TaskService] #{msg}\n"
         end
-        
+
         # adds system notifier as observer
         system_notifier = TaskManager::Notifications::SystemNotifier.new
         @notifier.add_observer(system_notifier)
@@ -50,12 +50,12 @@ module TaskManager
           **attributes
         )
 
-        if task.save
-          notify_task_event(task, :task_created)
-          task
-        else
+        unless task.save
           raise TaskManager::InvalidInputError, "failed to create task: #{task.errors.full_messages.join(', ')}"
         end
+
+        notify_task_event(task, :task_created)
+        task
       end
 
       # finds task by id
@@ -65,6 +65,7 @@ module TaskManager
       def find_task_by_id(id)
         task = TaskManager::Models::Task.find_by(id: id, user_id: @current_user_id)
         raise TaskManager::TaskNotFoundError, "task '#{id}' not found" unless task
+
         task
       end
 
@@ -102,13 +103,13 @@ module TaskManager
       # @raise [InvalidInputError] if update fails
       def update_task(id, attributes)
         task = find_task_by_id(id)
-        
-        if task.update(attributes)
-          notify_task_event(task, :task_updated)
-          task
-        else
+
+        unless task.update(attributes)
           raise TaskManager::InvalidInputError, "failed to update task: #{task.errors.full_messages.join(', ')}"
         end
+
+        notify_task_event(task, :task_updated)
+        task
       end
 
       # marks task as completed
@@ -179,7 +180,8 @@ module TaskManager
         case format
         when :csv
           CSV.open(filename, 'w') do |csv|
-            csv << ['ID', 'Title', 'Description', 'Status', 'Due Date', 'Tags', 'Priority', 'Created At', 'Completed At']
+            csv << ['ID', 'Title', 'Description', 'Status', 'Due Date', 'Tags', 'Priority', 'Created At',
+                    'Completed At']
             tasks.each do |task|
               csv << [
                 task.id,
@@ -230,11 +232,9 @@ module TaskManager
       # @param task [Task] task that triggered the event
       # @param event_type [Symbol] type of event
       def notify_task_event(task, event_type)
-        begin
-          @notifier.update(task, event_type)
-        rescue => e
-          @logger.error("Notification failed for event #{event_type}: #{e.message}")
-        end
+        @notifier.update(task, event_type)
+      rescue StandardError => e
+        @logger.error("Notification failed for event #{event_type}: #{e.message}")
       end
     end
   end

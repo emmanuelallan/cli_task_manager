@@ -18,11 +18,11 @@ RSpec.describe TaskManager::CLI do
     # Clean up any existing test data
     TaskManager::Models::Task.delete_all
     TaskManager::Models::User.delete_all
-    
+
     # Reset CLI state
     cli.current_user = nil
     cli.instance_variable_get(:@task_service).set_current_user_id(nil)
-    
+
     # Mock the logger to avoid file I/O issues in tests
     logger = double('logger')
     allow(logger).to receive(:info)
@@ -55,20 +55,20 @@ RSpec.describe TaskManager::CLI do
     it 'handles username already exists error' do
       # Register first user
       cli.register
-      
+
       # Try to register same username again
       allow(cli.instance_variable_get(:@user_service)).to receive(:register_user).and_raise(
         TaskManager::UsernameAlreadyExistsError.new("Username '#{username}' already exists")
       )
-      
-      expect { cli.register }.not_to change { TaskManager::Models::User.count }
+
+      expect { cli.register }.not_to(change { TaskManager::Models::User.count })
       expect(cli.instance_variable_get(:@logger)).to have_received(:warn).with(/Registration failed \(username exists\)/)
     end
 
     it 'handles password mismatch' do
       allow(cli.instance_variable_get(:@prompt)).to receive(:mask).and_return(password, 'different_password')
-      
-      expect { cli.register }.not_to change { TaskManager::Models::User.count }
+
+      expect { cli.register }.not_to(change { TaskManager::Models::User.count })
     end
   end
 
@@ -96,7 +96,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@user_service)).to receive(:authenticate_user).and_raise(
         TaskManager::AuthenticationError.new('Invalid password')
       )
-      
+
       cli.login
       expect(cli.current_user).to be_nil
       expect(cli.instance_variable_get(:@logger)).to have_received(:warn).with(/Login failed for '#{username}'/)
@@ -104,7 +104,7 @@ RSpec.describe TaskManager::CLI do
 
     it 'prevents login when already logged in' do
       cli.current_user = user
-      expect { cli.login }.not_to change { cli.current_user }
+      expect { cli.login }.not_to(change { cli.current_user })
     end
   end
 
@@ -120,7 +120,7 @@ RSpec.describe TaskManager::CLI do
     it 'logs out successfully' do
       cli.current_user = user
       cli.instance_variable_get(:@task_service).set_current_user_id(user_id)
-      
+
       cli.logout
       expect(cli.current_user).to be_nil
       expect(cli.instance_variable_get(:@task_service).current_user_id).to be_nil
@@ -148,7 +148,7 @@ RSpec.describe TaskManager::CLI do
     it 'adds a task successfully' do
       task_description = 'Buy groceries'
       expect { cli.add(task_description) }.to change { TaskManager::Models::Task.count }.by(1)
-      
+
       task = TaskManager::Models::Task.last
       expect(task.title).to eq(task_description)
       expect(task.description).to eq(task_description)
@@ -159,19 +159,19 @@ RSpec.describe TaskManager::CLI do
       task_description = 'Meeting with client'
       cli.options = {
         due_date: '2025-06-20',
-        tags: ['work', 'important'],
+        tags: %w[work important],
         priority: 'high',
         recurrence: 'weekly',
         parent_task_id: 'parent-123'
       }
-      
+
       cli.add(task_description)
-      
+
       task = TaskManager::Models::Task.last
       expect(task.title).to eq(task_description)
       expect(task.description).to eq(task_description)
       expect(task.due_date).to eq(Date.parse('2025-06-20'))
-      expect(task.tags).to match_array(['work', 'important'])
+      expect(task.tags).to match_array(%w[work important])
       expect(task.priority).to eq('high')
       expect(task.recurrence).to eq('weekly')
       expect(task.parent_task_id).to eq('parent-123')
@@ -181,8 +181,8 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:add_task).and_raise(
         TaskManager::InvalidInputError.new('Title cannot be blank')
       )
-      
-      expect { cli.add('') }.not_to change { TaskManager::Models::Task.count }
+
+      expect { cli.add('') }.not_to(change { TaskManager::Models::Task.count })
       expect(cli.instance_variable_get(:@logger)).to have_received(:error).with(/Failed to add task/)
     end
   end
@@ -242,7 +242,7 @@ RSpec.describe TaskManager::CLI do
 
     it 'filters by overdue status' do
       # Create an overdue task
-      overdue_task = TaskManager::Models::Task.create!(
+      TaskManager::Models::Task.create!(
         id: 'task-3',
         user_id: user_id,
         title: 'Overdue Task',
@@ -250,7 +250,7 @@ RSpec.describe TaskManager::CLI do
         status: 'pending',
         due_date: Date.today - 1
       )
-      
+
       cli.options = { overdue: true }
       expect { cli.list }.to output(/Overdue Task/).to_stdout
     end
@@ -299,7 +299,7 @@ RSpec.describe TaskManager::CLI do
         description: 'Test Description',
         status: 'pending',
         due_date: Date.today + 1,
-        tags: ['work', 'important'],
+        tags: %w[work important],
         priority: 'high'
       )
     end
@@ -319,7 +319,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:find_task_by_id).and_raise(
         TaskManager::TaskNotFoundError.new("task 'nonexistent' not found")
       )
-      
+
       expect { cli.show('nonexistent') }.to output(/ERROR/).to_stdout
     end
   end
@@ -359,7 +359,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:complete_task).and_raise(
         TaskManager::TaskNotFoundError.new("task 'nonexistent' not found")
       )
-      
+
       expect { cli.complete('nonexistent') }.to output(/ERROR/).to_stdout
     end
   end
@@ -400,7 +400,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:reopen_task).and_raise(
         TaskManager::TaskNotFoundError.new("task 'nonexistent' not found")
       )
-      
+
       expect { cli.reopen('nonexistent') }.to output(/ERROR/).to_stdout
     end
   end
@@ -461,10 +461,10 @@ RSpec.describe TaskManager::CLI do
     end
 
     it 'edits task tags' do
-      cli.options = { tags: ['new', 'tags'] }
+      cli.options = { tags: %w[new tags] }
       cli.edit('task-123')
       task.reload
-      expect(task.tags).to match_array(['new', 'tags'])
+      expect(task.tags).to match_array(%w[new tags])
     end
 
     it 'clears tags with none' do
@@ -513,7 +513,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:update_task).and_raise(
         TaskManager::TaskNotFoundError.new("task 'nonexistent' not found")
       )
-      
+
       expect { cli.edit('nonexistent') }.to output(/ERROR/).to_stdout
     end
   end
@@ -544,14 +544,14 @@ RSpec.describe TaskManager::CLI do
 
     it 'deletes task when confirmed' do
       allow(cli.instance_variable_get(:@prompt)).to receive(:yes?).and_return(true)
-      
+
       expect { cli.delete('task-123') }.to change { TaskManager::Models::Task.count }.by(-1)
     end
 
     it 'cancels deletion when not confirmed' do
       allow(cli.instance_variable_get(:@prompt)).to receive(:yes?).and_return(false)
-      
-      expect { cli.delete('task-123') }.not_to change { TaskManager::Models::Task.count }
+
+      expect { cli.delete('task-123') }.not_to(change { TaskManager::Models::Task.count })
       expect { cli.delete('task-123') }.to output(/Deletion cancelled/).to_stdout
     end
 
@@ -560,7 +560,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:delete_task).and_raise(
         TaskManager::TaskNotFoundError.new("task 'nonexistent' not found")
       )
-      
+
       expect { cli.delete('nonexistent') }.to output(/ERROR/).to_stdout
     end
   end
@@ -595,11 +595,11 @@ RSpec.describe TaskManager::CLI do
     it 'exports tasks to CSV' do
       filename = 'test_export.csv'
       cli.export('csv', filename)
-      
+
       expect(File.exist?(filename)).to be true
       expect(File.read(filename)).to include('Test Task')
       expect(File.read(filename)).to include('high')
-      
+
       File.delete(filename)
     end
 
@@ -607,7 +607,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:export_tasks).and_raise(
         TaskManager::InvalidInputError.new('unsupported export format: invalid')
       )
-      
+
       expect { cli.export('invalid', 'test.txt') }.to output(/ERROR/).to_stdout
     end
   end
@@ -631,16 +631,16 @@ RSpec.describe TaskManager::CLI do
         Title,Description,Status,Due Date,Tags,Priority,Created At,Completed At
         Imported Task,Test import,pending,2025-06-20,work;important,high,2025-06-12 10:00:00,
       CSV
-      
+
       filename = 'test_import.csv'
       File.write(filename, csv_content)
-      
+
       expect { cli.import('csv', filename) }.to change { TaskManager::Models::Task.count }.by(1)
-      
+
       task = TaskManager::Models::Task.last
       expect(task.title).to eq('Imported Task')
       expect(task.user_id).to eq(user_id)
-      
+
       File.delete(filename)
     end
 
@@ -648,7 +648,7 @@ RSpec.describe TaskManager::CLI do
       allow(cli.instance_variable_get(:@task_service)).to receive(:import_tasks).and_raise(
         TaskManager::InvalidInputError.new('unsupported import format: invalid')
       )
-      
+
       expect { cli.import('invalid', 'test.txt') }.to output(/ERROR/).to_stdout
     end
   end
@@ -702,7 +702,7 @@ RSpec.describe TaskManager::CLI do
 
     it 'handles unexpected errors gracefully' do
       allow(cli.instance_variable_get(:@task_service)).to receive(:add_task).and_raise(StandardError.new('Unexpected error'))
-      
+
       expect { cli.add('test') }.to output(/An unexpected error occurred/).to_stdout
       expect(cli.instance_variable_get(:@logger)).to have_received(:fatal).with(/Failed to add task/)
     end

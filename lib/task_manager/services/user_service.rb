@@ -26,12 +26,12 @@ module TaskManager
 
         user = TaskManager::Models::User.new(username: username)
         user.set_password(password)
-        
-        if user.save
-          user
-        else
+
+        unless user.save
           raise TaskManager::InvalidInputError, "failed to create user: #{user.errors.full_messages.join(', ')}"
         end
+
+        user
       end
 
       # validates user credentials
@@ -43,15 +43,13 @@ module TaskManager
       def authenticate_user(username, password)
         user = find_user_by_username(username)
 
-        unless user
-          raise TaskManager::UserNotFoundError, "user '#{username}' not found"
-        end
+        raise TaskManager::UserNotFoundError, "user '#{username}' not found" unless user
 
-        if user.authenticate(password)
-          user
-        else
+        unless user.authenticate(password)
           raise TaskManager::AuthenticationError, "incorrect password for user '#{username}'"
         end
+
+        user
       end
 
       # finds user by id

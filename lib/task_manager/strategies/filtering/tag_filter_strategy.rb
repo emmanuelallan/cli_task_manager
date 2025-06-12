@@ -18,7 +18,7 @@ module TaskManager
           return tasks if @filter_tags.empty?
 
           tasks.select do |task|
-              @filter_tags.any? { |tag| task.has_tag?(tag) }
+            @filter_tags.any? { |tag| task.has_tag?(tag) }
           end
         end
       end

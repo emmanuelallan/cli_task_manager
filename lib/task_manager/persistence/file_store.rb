@@ -66,7 +66,7 @@ module TaskManager
       # @raise [FileError] if creation fails
       def ensure_data_dir_exists
         FileUtils.mkdir_p(@data_dir) unless File.directory?(@data_dir)
-      rescue => e
+      rescue StandardError => e
         raise TaskManager::FileError, "failed to create data directory: #{e.message}"
       end
 
@@ -88,10 +88,11 @@ module TaskManager
           end
 
         raise TaskManager::FileError, "invalid data format in #{filepath}" unless parsed_data.is_a?(Array)
+
         parsed_data
       rescue JSON::ParserError, Psych::SyntaxError => e
         raise TaskManager::FileError, "failed to parse data: #{e.message}"
-      rescue => e
+      rescue StandardError => e
         raise TaskManager::FileError, "unexpected error loading data: #{e.message}"
       end
 
@@ -111,7 +112,7 @@ module TaskManager
         begin
           File.write(temp_filepath, serialized_data)
           FileUtils.mv(temp_filepath, filepath)
-        rescue => e
+        rescue StandardError => e
           File.delete(temp_filepath) if File.exist?(temp_filepath)
           raise TaskManager::FileError, "failed to save data: #{e.message}"
         end

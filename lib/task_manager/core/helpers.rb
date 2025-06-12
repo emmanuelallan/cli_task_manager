@@ -51,7 +51,7 @@ module TaskManager
         text&.strip
       end
 
-      # note: add more utility methods here as needed
+      # NOTE: add more utility methods here as needed
       # - email validation
       # - id formatting
       # - display formatting

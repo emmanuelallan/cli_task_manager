@@ -9,7 +9,7 @@ module TaskManager
         def establish_connection
           config = TaskManager::Config::ApplicationConfig.instance
           db_path = File.join(config.data_directory, 'task_manager.db')
-          
+
           # ensures database directory exists
           FileUtils.mkdir_p(File.dirname(db_path))
 
@@ -25,10 +25,10 @@ module TaskManager
         def reset_database
           config = TaskManager::Config::ApplicationConfig.instance
           db_path = File.join(config.data_directory, 'task_manager.db')
-          
+
           # remove existing database
           FileUtils.rm_f(db_path)
-          
+
           # re-establish connection and run migrations
           establish_connection
         end
@@ -52,7 +52,13 @@ module TaskManager
           end
 
           # creates tasks table if it doesn't exist
-          unless ActiveRecord::Base.connection.table_exists?(:tasks)
+          if ActiveRecord::Base.connection.table_exists?(:tasks)
+            # checks if status column exists, adds it if missing
+            unless ActiveRecord::Base.connection.column_exists?(:tasks, :status)
+              ActiveRecord::Base.connection.add_column :tasks, :status, :string, null: false, default: 'pending'
+              ActiveRecord::Base.connection.add_index :tasks, :status
+            end
+          else
             ActiveRecord::Base.connection.create_table :tasks, id: false do |t|
               t.string :id, null: false, primary_key: true
               t.string :user_id, null: false
@@ -77,12 +83,6 @@ module TaskManager
             ActiveRecord::Base.connection.add_index :tasks, :priority
             ActiveRecord::Base.connection.add_index :tasks, :created_at
             ActiveRecord::Base.connection.add_index :tasks, :updated_at
-          else
-            # checks if status column exists, adds it if missing
-            unless ActiveRecord::Base.connection.column_exists?(:tasks, :status)
-              ActiveRecord::Base.connection.add_column :tasks, :status, :string, null: false, default: 'pending'
-              ActiveRecord::Base.connection.add_index :tasks, :status
-            end
           end
         end
       end

@@ -10,7 +10,7 @@ RSpec.describe TaskManager::Services::TaskService do
       title: 'Test Task',
       description: 'This is a test task',
       due_date: Date.today + 7,
-      tags: ['test', 'important'],
+      tags: %w[test important],
       priority: 'high'
     }
   end
@@ -39,9 +39,9 @@ RSpec.describe TaskManager::Services::TaskService do
     end
 
     it 'raises InvalidInputError for invalid task data' do
-      expect {
+      expect do
         service.add_task({})
-      }.to raise_error(TaskManager::InvalidInputError)
+      end.to raise_error(TaskManager::InvalidInputError)
     end
   end
 
@@ -57,9 +57,9 @@ RSpec.describe TaskManager::Services::TaskService do
     end
 
     it 'raises TaskNotFoundError for non-existent id' do
-      expect {
+      expect do
         service.find_task_by_id('nonexistent')
-      }.to raise_error(TaskManager::TaskNotFoundError)
+      end.to raise_error(TaskManager::TaskNotFoundError)
     end
   end
 
@@ -69,10 +69,10 @@ RSpec.describe TaskManager::Services::TaskService do
       service.add_task(task_attributes.merge(title: 'Task 1', status: 'completed'))
       service.add_task(task_attributes.merge(title: 'Task 2', status: 'pending'))
       service.add_task(task_attributes.merge(
-        title: 'Task 3',
-        status: 'pending',
-        due_date: Date.today - 1
-      ))
+                         title: 'Task 3',
+                         status: 'pending',
+                         due_date: Date.today - 1
+                       ))
     end
 
     it 'returns all tasks for current user' do
@@ -125,15 +125,15 @@ RSpec.describe TaskManager::Services::TaskService do
     end
 
     it 'raises TaskNotFoundError for non-existent task' do
-      expect {
+      expect do
         service.update_task('nonexistent', title: 'Updated Task')
-      }.to raise_error(TaskManager::TaskNotFoundError)
+      end.to raise_error(TaskManager::TaskNotFoundError)
     end
 
     it 'raises InvalidInputError for invalid update data' do
-      expect {
+      expect do
         service.update_task(task.id, title: '')
-      }.to raise_error(TaskManager::InvalidInputError)
+      end.to raise_error(TaskManager::InvalidInputError)
     end
   end
 
@@ -149,9 +149,9 @@ RSpec.describe TaskManager::Services::TaskService do
     end
 
     it 'raises TaskNotFoundError for non-existent task' do
-      expect {
+      expect do
         service.complete_task('nonexistent')
-      }.to raise_error(TaskManager::TaskNotFoundError)
+      end.to raise_error(TaskManager::TaskNotFoundError)
     end
   end
 
@@ -167,9 +167,9 @@ RSpec.describe TaskManager::Services::TaskService do
     end
 
     it 'raises TaskNotFoundError for non-existent task' do
-      expect {
+      expect do
         service.reopen_task('nonexistent')
-      }.to raise_error(TaskManager::TaskNotFoundError)
+      end.to raise_error(TaskManager::TaskNotFoundError)
     end
   end
 
@@ -180,15 +180,15 @@ RSpec.describe TaskManager::Services::TaskService do
 
     it 'deletes task' do
       service.delete_task(task.id)
-      expect {
+      expect do
         service.find_task_by_id(task.id)
-      }.to raise_error(TaskManager::TaskNotFoundError)
+      end.to raise_error(TaskManager::TaskNotFoundError)
     end
 
     it 'raises TaskNotFoundError for non-existent task' do
-      expect {
+      expect do
         service.delete_task('nonexistent')
-      }.to raise_error(TaskManager::TaskNotFoundError)
+      end.to raise_error(TaskManager::TaskNotFoundError)
     end
   end
 
@@ -206,9 +206,9 @@ RSpec.describe TaskManager::Services::TaskService do
     end
 
     it 'raises InvalidInputError for unsupported format' do
-      expect {
+      expect do
         service.export_tasks(format: :invalid, filename: 'test.txt')
-      }.to raise_error(TaskManager::InvalidInputError)
+      end.to raise_error(TaskManager::InvalidInputError)
     end
   end
 
@@ -236,9 +236,9 @@ RSpec.describe TaskManager::Services::TaskService do
     end
 
     it 'raises InvalidInputError for unsupported format' do
-      expect {
+      expect do
         service.import_tasks(format: :invalid, filename: 'test.txt')
-      }.to raise_error(TaskManager::InvalidInputError)
+      end.to raise_error(TaskManager::InvalidInputError)
     end
   end
 end

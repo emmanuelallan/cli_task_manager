@@ -39,10 +39,10 @@ RSpec.describe TaskManager::Persistence::DatabaseStore do
 
     it 'creates the tasks table with correct schema' do
       described_class.establish_connection
-      
+
       # Verify tasks table exists
       expect(ActiveRecord::Base.connection.table_exists?(:tasks)).to be true
-      
+
       # Verify columns
       columns = ActiveRecord::Base.connection.columns(:tasks).map(&:name)
       expect(columns).to include(
@@ -63,10 +63,10 @@ RSpec.describe TaskManager::Persistence::DatabaseStore do
 
     it 'creates the users table with correct schema' do
       described_class.establish_connection
-      
+
       # Verify users table exists
       expect(ActiveRecord::Base.connection.table_exists?(:users)).to be true
-      
+
       # Verify columns
       columns = ActiveRecord::Base.connection.columns(:users).map(&:name)
       expect(columns).to include(
@@ -95,7 +95,7 @@ RSpec.describe TaskManager::Persistence::DatabaseStore do
     end
 
     it 'allows creating and retrieving a task' do
-      task = ActiveRecord::Base.connection.execute(<<-SQL)
+      ActiveRecord::Base.connection.execute(<<-SQL)
         INSERT INTO tasks (id, user_id, title, description, status, created_at, updated_at)
         VALUES ('test-id', 'user-1', 'Test Task', 'Test Description', 'pending', datetime('now'), datetime('now'))
       SQL
@@ -110,7 +110,7 @@ RSpec.describe TaskManager::Persistence::DatabaseStore do
     end
 
     it 'allows creating and retrieving a user' do
-      user = ActiveRecord::Base.connection.execute(<<-SQL)
+      ActiveRecord::Base.connection.execute(<<-SQL)
         INSERT INTO users (id, username, password_digest, created_at, updated_at)
         VALUES ('user-1', 'testuser', 'hashed_password', datetime('now'), datetime('now'))
       SQL

@@ -28,15 +28,15 @@ RSpec.describe TaskManager::Services::UserService do
 
     it 'raises UsernameAlreadyExistsError for duplicate username' do
       service.register_user(username, password)
-      expect {
+      expect do
         service.register_user(username, 'another_password')
-      }.to raise_error(TaskManager::UsernameAlreadyExistsError)
+      end.to raise_error(TaskManager::UsernameAlreadyExistsError)
     end
 
     it 'raises InvalidInputError for invalid user data' do
-      expect {
+      expect do
         service.register_user('', password)
-      }.to raise_error(TaskManager::InvalidInputError)
+      end.to raise_error(TaskManager::InvalidInputError)
     end
   end
 
@@ -52,15 +52,15 @@ RSpec.describe TaskManager::Services::UserService do
     end
 
     it 'raises UserNotFoundError for non-existent username' do
-      expect {
+      expect do
         service.authenticate_user('nonexistent', password)
-      }.to raise_error(TaskManager::UserNotFoundError)
+      end.to raise_error(TaskManager::UserNotFoundError)
     end
 
     it 'raises AuthenticationError for incorrect password' do
-      expect {
+      expect do
         service.authenticate_user(username, 'wrong_password')
-      }.to raise_error(TaskManager::AuthenticationError)
+      end.to raise_error(TaskManager::AuthenticationError)
     end
   end
 
@@ -112,7 +112,7 @@ RSpec.describe TaskManager::Services::UserService do
       users = service.get_all_users
       expect(users).to be_an(Array)
       expect(users.length).to eq(2)
-      expect(users.map(&:username)).to match_array(['user1', 'user2'])
+      expect(users.map(&:username)).to match_array(%w[user1 user2])
     end
   end
 end
