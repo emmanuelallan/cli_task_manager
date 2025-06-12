@@ -7,6 +7,7 @@
 /config/boot.rb
 /coverage/                  # SimpleCov code coverage reports
 /spec/tmp/                  # Temporary files created by tests
+.coverage
 
 # Bundler
 .bundle/                    # Bundler's local gem installation directory
