@@ -5,6 +5,9 @@ source 'https://rubygems.org'
 gem 'thor' # For robust CLI command parsing and subcommands
 gem 'colorize' # For colorful console output
 gem 'tty-prompt' # For interactive CLI prompts (optional, but enhances UX)
+gem 'tty-table' # For beautiful table formatting
+gem 'tty-box' # For bordered boxes and sections
+gem 'tty-screen' # For screen utilities and sizing
 
 # Data Persistence & Security
 gem 'json' # Ruby's built-in JSON library (good to list for clarity)

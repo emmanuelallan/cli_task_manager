@@ -1,5 +1,8 @@
 require 'thor'
 require 'tty-prompt'
+require 'tty-table'
+require 'tty-box'
+require 'tty-screen'
 require 'colorize'
 require 'logger'
 
@@ -36,6 +39,8 @@ module TaskManager
 
     desc "register", "register a new user account"
     def register
+      display_header("📝 User Registration")
+      
       username = @prompt.ask("Enter desired username:") do |q|
         q.required true
         q.validate(/\A[a-zA-Z0-9_]+\z/, "Username can only contain letters, numbers, and underscores.")
@@ -51,19 +56,19 @@ module TaskManager
       end
 
       unless password == password_confirm
-        display_error("Passwords do not match. Please try again.")
+        display_error("❌ Passwords do not match. Please try again.")
         return
       end
 
       begin
         user = @user_service.register_user(username, password)
-        display_success("User '#{user.username}' registered successfully!")
+        display_success("✅ User '#{user.username}' registered successfully!")
         @logger.info("User registered: #{user.username}")
       rescue TaskManager::UsernameAlreadyExistsError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.warn("Registration failed (username exists): #{username}")
       rescue => e
-        display_error("An unexpected error occurred during registration: #{e.message}")
+        display_error("❌ An unexpected error occurred during registration: #{e.message}")
         @logger.fatal("Registration failed: #{username} - #{e.message}")
       end
     end
@@ -71,9 +76,11 @@ module TaskManager
     desc "login", "Log in to your account"
     def login
       if @current_user
-        display_error("You are already logged in as '#{@current_user.username}'.")
+        display_warning("⚠️  You are already logged in as '#{@current_user.username}'.")
         return
       end
+
+      display_header("🔐 User Login")
 
       username = @prompt.ask("Enter your username:") do |q|
         q.required true
@@ -88,30 +95,30 @@ module TaskManager
         @current_user = user
         @task_service.set_current_user_id(user.id)
         TaskManager::Config::ApplicationConfig.instance.set_session_user_id(user.id)
-        display_success("Logged in as '#{user.username}'!")
+        display_success("✅ Logged in as '#{user.username}'!")
         
         # Check for overdue and due soon tasks after login
         check_task_notifications
         
         list
       rescue TaskManager::UserNotFoundError, TaskManager::AuthenticationError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.warn("Login failed for '#{username}': #{e.message}")
       rescue => e
-        display_error("An unexpected error occurred during login: #{e.message}")
+        display_error("❌ An unexpected error occurred during login: #{e.message}")
         @logger.fatal("Login failed: #{username} - #{e.message}")
       end
     end
 
     desc "logout", "Log out of your account"
     def logout
-      return display_error("Not logged in") unless @current_user
+      return display_error("❌ Not logged in") unless @current_user
       
       username = @current_user.username
       @current_user = nil
       @task_service.set_current_user_id(nil)
       TaskManager::Config::ApplicationConfig.instance.clear_session
-      display_success("Logged out successfully")
+      display_success("👋 Logged out successfully")
     end
 
     # --- Task Management Commands ---
@@ -144,13 +151,13 @@ module TaskManager
           recurrence: options[:recurrence],
           parent_task_id: options[:parent_task_id]
         )
-        display_success("Task '#{task.title.colorize(:light_blue)}' added successfully with ID #{task.id}.")
+        display_success("✅ Task '#{task.title.colorize(:light_blue)}' added successfully with ID #{task.id}.")
         @logger.info("Task added by #{@current_user.username}: #{task.title} (ID: #{task.id})")
       rescue TaskManager::InvalidInputError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.error("Failed to add task for #{@current_user.username}: #{description} - #{e.message}")
       rescue => e
-        display_error("An unexpected error occurred while adding task: #{e.message}")
+        display_error("❌ An unexpected error occurred while adding task: #{e.message}")
         @logger.fatal("Failed to add task: #{description} - #{e.message}")
       end
     end
@@ -190,10 +197,10 @@ module TaskManager
 
       begin
           tasks = @task_service.list_tasks(filter_options)
-          tasks.empty? ? show_empty_task_message : display_tasks(tasks)
+          tasks.empty? ? show_empty_task_message : display_tasks_table(tasks)
           @logger.info("tasks listed by #{@current_user.username} with filters: #{filter_options}")
       rescue => e
-          display_error("failed to list tasks: #{e.message}")
+          display_error("❌ failed to list tasks: #{e.message}")
           @logger.error("list failed: #{e.message}")
       end
     end
@@ -203,25 +210,13 @@ module TaskManager
       authenticate_user!
       begin
         task = @task_service.find_task_by_id(task_id)
-        puts "\n--- Task Details ---".colorize(:light_blue)
-        puts "ID: #{task.id}".colorize(:light_black)
-        puts "Title: #{task.title.colorize(:cyan)}"
-        puts "Description: #{task.description.colorize(:cyan)}"
-        puts "Status: #{task.status == 'completed' ? 'Completed'.colorize(:green) : 'Pending'.colorize(:yellow)}"
-        puts "Due Date: #{task.due_date ? task.due_date.strftime('%Y-%m-%d').colorize(:magenta) : 'N/A'} #{"(OVERDUE)".colorize(:red) if task.overdue?}"
-        puts "Tags: #{task.tags.empty? ? 'None' : task.tags.join(', ').colorize(:light_magenta)}"
-        puts "Priority: #{task.priority || 'N/A'}".colorize(:white)
-        puts "Recurrence: #{task.recurrence || 'N/A'}".colorize(:light_white)
-        puts "Parent Task ID: #{task.parent_task_id || 'N/A'}".colorize(:light_black)
-        puts "Created At: #{task.created_at.strftime('%Y-%m-%d %H:%M:%S').colorize(:light_black)}"
-        puts "Completed At: #{task.completed_at ? task.completed_at.strftime('%Y-%m-%d %H:%M:%S').colorize(:light_black) : 'N/A'}"
-        puts "--------------------".colorize(:light_blue)
+        display_task_details(task)
         @logger.info("Task shown by #{@current_user.username}: #{task_id}")
       rescue TaskManager::TaskNotFoundError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.warn("Task not found for show command by #{@current_user.username}: #{task_id}")
       rescue => e
-        display_error("An unexpected error occurred while showing task: #{e.message}")
+        display_error("❌ An unexpected error occurred while showing task: #{e.message}")
         @logger.fatal("Failed to show task: #{task_id} - #{e.message}")
       end
     end
@@ -231,13 +226,13 @@ module TaskManager
       authenticate_user!
       begin
         task = @task_service.complete_task(task_id)
-        display_success("Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) marked as completed.")
+        display_success("✅ Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) marked as completed.")
         @logger.info("Task completed by #{@current_user.username}: #{task.id}")
       rescue TaskManager::TaskNotFoundError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.warn("Task not found for complete command by #{@current_user.username}: #{task_id}")
       rescue => e
-        display_error("An unexpected error occurred while completing task: #{e.message}")
+        display_error("❌ An unexpected error occurred while completing task: #{e.message}")
         @logger.fatal("Failed to complete task: #{task_id} - #{e.message}")
       end
     end
@@ -247,13 +242,13 @@ module TaskManager
       authenticate_user!
       begin
         task = @task_service.reopen_task(task_id)
-        display_success("Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) marked as pending.")
+        display_success("🔄 Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) marked as pending.")
         @logger.info("Task reopened by #{@current_user.username}: #{task.id}")
       rescue TaskManager::TaskNotFoundError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.warn("Task not found for reopen command by #{@current_user.username}: #{task_id}")
       rescue => e
-        display_error("An unexpected error occurred while reopening task: #{e.message}")
+        display_error("❌ An unexpected error occurred while reopening task: #{e.message}")
         @logger.fatal("Failed to reopen task: #{task_id} - #{e.message}")
       end
     end
@@ -313,19 +308,19 @@ module TaskManager
       end
 
       if updated_attributes.empty?
-        display_error("No attributes provided for update. Use --help for options.")
+        display_error("❌ No attributes provided for update. Use --help for options.")
         return
       end
 
       begin
         task = @task_service.update_task(task_id, updated_attributes)
-        display_success("Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) updated successfully.")
+        display_success("✏️  Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) updated successfully.")
         @logger.info("Task updated by #{@current_user.username}: #{task.id} with #{updated_attributes}")
       rescue TaskManager::TaskNotFoundError, TaskManager::InvalidInputError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.warn("Failed to edit task by #{@current_user.username}: #{task_id} - #{e.message}")
       rescue => e
-        display_error("An unexpected error occurred while editing task: #{e.message}")
+        display_error("❌ An unexpected error occurred while editing task: #{e.message}")
         @logger.fatal("Failed to edit task: #{task_id} - #{e.message}")
       end
     end
@@ -333,20 +328,20 @@ module TaskManager
     desc "delete ID", "Delete a task"
     def delete(task_id)
       authenticate_user!
-      if @prompt.yes?("Are you sure you want to delete task '#{task_id}'? This cannot be undone.".colorize(:red))
+      if @prompt.yes?("🗑️  Are you sure you want to delete task '#{task_id}'? This cannot be undone.".colorize(:red))
         begin
           @task_service.delete_task(task_id)
-          display_success("Task ID #{task_id} deleted successfully.")
+          display_success("🗑️  Task ID #{task_id} deleted successfully.")
           @logger.info("Task deleted by #{@current_user.username}: #{task_id}")
         rescue TaskManager::TaskNotFoundError => e
-          display_error(e.message)
+          display_error("❌ #{e.message}")
           @logger.warn("Task not found for delete command by #{@current_user.username}: #{task_id}")
         rescue => e
-          display_error("An unexpected error occurred while deleting task: #{e.message}")
+          display_error("❌ An unexpected error occurred while deleting task: #{e.message}")
           @logger.fatal("Failed to delete task: #{task_id} - #{e.message}")
         end
       else
-        display_success("Deletion cancelled.")
+        display_info("🚫 Deletion cancelled.")
       end
     end
 
@@ -361,13 +356,13 @@ module TaskManager
       authenticate_user!
       begin
         @task_service.export_tasks(format: format.to_sym, filename: filename)
-        display_success("Tasks successfully exported to '#{filename}'!")
+        display_success("📤 Tasks successfully exported to '#{filename}'!")
         @logger.info("Tasks exported by #{@current_user.username} to #{filename}")
       rescue TaskManager::InvalidInputError, TaskManager::FileError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.error("Failed to export tasks for #{@current_user.username}: #{e.message}")
       rescue => e
-        display_error("An unexpected error occurred during export: #{e.message}")
+        display_error("❌ An unexpected error occurred during export: #{e.message}")
         @logger.fatal("Failed to export tasks for #{@current_user.username}: #{e.message}")
       end
     end
@@ -384,13 +379,13 @@ module TaskManager
       authenticate_user!
       begin
         @task_service.import_tasks(format: format.to_sym, filename: filename)
-        display_success("Tasks successfully imported from '#{filename}'!")
+        display_success("📥 Tasks successfully imported from '#{filename}'!")
         @logger.info("Tasks imported by #{@current_user.username} from #{filename}")
       rescue TaskManager::InvalidInputError, TaskManager::FileError => e
-        display_error(e.message)
+        display_error("❌ #{e.message}")
         @logger.error("Failed to import tasks for #{@current_user.username}: #{e.message}")
       rescue => e
-        display_error("An unexpected error occurred during import: #{e.message}")
+        display_error("❌ An unexpected error occurred during import: #{e.message}")
         @logger.fatal("Failed to import tasks for #{@current_user.username}: #{e.message}")
       end
     end
@@ -406,9 +401,9 @@ module TaskManager
     desc "whoami", "Display the currently logged in user"
     def whoami
       if @current_user
-        puts "You are currently logged in as: #{@current_user.username.colorize(:cyan)}"
+        display_info("👤 You are currently logged in as: #{@current_user.username.colorize(:cyan)}")
       else
-        puts "You are not logged in. Use `task_manager login` or `task_manager register`."
+        display_warning("⚠️  You are not logged in. Use `task_manager login` or `task_manager register`.")
       end
     end
 
@@ -443,59 +438,196 @@ module TaskManager
         due_soon_count = @task_service.check_due_soon_tasks.count
         
         if overdue_count > 0 || due_soon_count > 0
-          puts "\n--- Task Notifications ---".colorize(:yellow)
-          puts "Overdue tasks: #{overdue_count}".colorize(overdue_count > 0 ? :red : :green)
-          puts "Tasks due soon: #{due_soon_count}".colorize(due_soon_count > 0 ? :yellow : :green)
-          puts "------------------------".colorize(:yellow)
+          display_notification_box(overdue_count, due_soon_count)
         end
       end
 
-      def display_tasks(tasks)
+      def display_tasks_table(tasks)
         if tasks.empty?
           show_empty_task_message
           return
         end
 
-        puts "\n--- Your Tasks (#{@current_user.username}) ---".colorize(:blue)
-        tasks.each_with_index do |task, index|
-          status_icon = task.status == 'completed' ? "✓".colorize(:green) : "✗".colorize(:yellow)
-          due_date_display = task.due_date ? task.due_date.strftime('%Y-%m-%d') : 'N/A'
-          due_date_color = :white
-          if task.overdue? && task.status != 'completed'
-            due_date_color = :red
-          elsif task.due_date && task.due_date <= Date.today + 7 # Due within next 7 days
-            due_date_color = :light_red
-          end
-
-          tags_display = task.tags.empty? ? "" : " " + "[#{task.tags.join(', ').colorize(:light_magenta)}]"
-          priority_display = task.priority ? " (#{task.priority.upcase.colorize(:magenta)})" : ""
-
-          # Truncate title for display
-          title_display = task.title
-          if title_display.length > 50
-            title_display = title_display[0..47] + "..."
-          end
-
-          puts "#{status_icon} #{index + 1}. #{title_display.colorize(:cyan)} #{priority_display} #{tags_display} (Due: #{due_date_display.colorize(due_date_color)}) ID: #{task.id.colorize(:light_black)}"
+        # Prepare table data
+        table_data = tasks.map.with_index do |task, index|
+          [
+            "#{index + 1}",
+            get_status_icon(task.status),
+            truncate_text(task.title, 40),
+            get_priority_badge(task.priority),
+            format_due_date(task),
+            format_tags(task.tags),
+            task.id[0..7] # Short ID
+          ]
         end
-        puts "------------------------------------".colorize(:blue)
+
+        # Create table
+        table = TTY::Table.new(
+          header: ['#', 'Status', 'Title', 'Priority', 'Due Date', 'Tags', 'ID'],
+          rows: table_data
+        )
+
+        # Display header
+        display_header("📋 Your Tasks (#{@current_user.username})")
+        
+        # Render table with styling (fixed for TTY::Table >= 0.12)
+        puts table.render(:unicode, padding: [0, 1], border: { separator: :each_row, style: :green })
+      end
+
+      def display_task_details(task)
+        display_header("📄 Task Details")
+        
+        details = [
+          ["ID", task.id],
+          ["Title", task.title.colorize(:cyan)],
+          ["Description", task.description.colorize(:cyan)],
+          ["Status", get_status_badge(task.status)],
+          ["Due Date", format_due_date_with_icon(task)],
+          ["Tags", format_tags(task.tags)],
+          ["Priority", get_priority_badge(task.priority)],
+          ["Recurrence", task.recurrence || 'None'],
+          ["Parent Task ID", task.parent_task_id || 'None'],
+          ["Created At", task.created_at.strftime('%Y-%m-%d %H:%M:%S').colorize(:light_black)],
+          ["Completed At", task.completed_at ? task.completed_at.strftime('%Y-%m-%d %H:%M:%S').colorize(:light_black) : 'N/A']
+        ]
+
+        table = TTY::Table.new(rows: details)
+        puts table.render(:unicode, padding: [0, 1], border: :unicode) do |renderer|
+          renderer.border.separator = :each_row
+          renderer.border.style = :blue
+        end
+      end
+
+      def display_header(title)
+        puts TTY::Box.frame(
+          title,
+          padding: [0, 1],
+          border: :thick,
+          style: {
+            border: { fg: :blue, bg: :black },
+            title: { fg: :white, bg: :blue }
+          }
+        )
+      end
+
+      def display_notification_box(overdue_count, due_soon_count)
+        content = [
+          "🔔 Task Notifications",
+          "",
+          "⏰ Overdue tasks: #{overdue_count}".colorize(overdue_count > 0 ? :red : :green),
+          "📅 Tasks due soon: #{due_soon_count}".colorize(due_soon_count > 0 ? :yellow : :green)
+        ].join("\n")
+
+        puts TTY::Box.frame(
+          content,
+          padding: [1, 2],
+          border: :thick,
+          style: {
+            border: { fg: :yellow, bg: :black },
+            title: { fg: :black, bg: :yellow }
+          }
+        )
+      end
+
+      def get_status_icon(status)
+        case status
+        when 'completed'
+          "✅".colorize(:green)
+        when 'pending'
+          "⏳".colorize(:yellow)
+        else
+          "❓".colorize(:light_black)
+        end
+      end
+
+      def get_status_badge(status)
+        case status
+        when 'completed'
+          "✅ Completed".colorize(:green)
+        when 'pending'
+          "⏳ Pending".colorize(:yellow)
+        else
+          "❓ #{status.capitalize}".colorize(:light_black)
+        end
+      end
+
+      def get_priority_badge(priority)
+        return "⚪ None".colorize(:light_black) unless priority
+
+        case priority.downcase
+        when 'high'
+          "🔴 HIGH".colorize(:red)
+        when 'medium'
+          "🟡 MEDIUM".colorize(:yellow)
+        when 'low'
+          "🟢 LOW".colorize(:green)
+        else
+          "⚪ #{priority.upcase}".colorize(:light_black)
+        end
+      end
+
+      def format_due_date(task)
+        return "📅 No due date".colorize(:light_black) unless task.due_date
+
+        due_date_str = task.due_date.strftime('%Y-%m-%d')
+        
+        if task.overdue? && task.status != 'completed'
+          "🚨 #{due_date_str} (OVERDUE)".colorize(:red)
+        elsif task.due_date <= Date.today + 1
+          "⚠️  #{due_date_str} (DUE SOON)".colorize(:yellow)
+        else
+          "📅 #{due_date_str}".colorize(:white)
+        end
+      end
+
+      def format_due_date_with_icon(task)
+        return "📅 No due date".colorize(:light_black) unless task.due_date
+
+        due_date_str = task.due_date.strftime('%Y-%m-%d')
+        
+        if task.overdue? && task.status != 'completed'
+          "🚨 #{due_date_str} (OVERDUE)".colorize(:red)
+        elsif task.due_date <= Date.today + 1
+          "⚠️  #{due_date_str} (DUE SOON)".colorize(:yellow)
+        else
+          "📅 #{due_date_str}".colorize(:white)
+        end
+      end
+
+      def format_tags(tags)
+        return "🏷️  No tags".colorize(:light_black) if tags.empty?
+
+        "🏷️  #{tags.join(', ')}".colorize(:light_magenta)
+      end
+
+      def truncate_text(text, max_length)
+        return text if text.length <= max_length
+        "#{text[0..max_length-3]}...".colorize(:light_black)
       end
 
       def show_empty_task_message
-        puts "\nNo tasks found for you."
+        display_info("📭 No tasks found for you.")
       end
 
       def display_error(message)
-        puts "ERROR: #{message}".colorize(:red)
+        puts "❌ #{message}".colorize(:red)
       end
 
       def display_success(message)
-        puts "SUCCESS: #{message}".colorize(:green)
+        puts "✅ #{message}".colorize(:green)
+      end
+
+      def display_warning(message)
+        puts "⚠️  #{message}".colorize(:yellow)
+      end
+
+      def display_info(message)
+        puts "ℹ️  #{message}".colorize(:cyan)
       end
 
       def authenticate_user!
         unless @current_user
-          raise Thor::Error, "You must be logged in to perform this action. Please use `task_manager login` or `task_manager register`."
+          raise Thor::Error, "❌ You must be logged in to perform this action. Please use `task_manager login` or `task_manager register`."
         end
       end
     end
