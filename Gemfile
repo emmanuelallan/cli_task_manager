@@ -2,21 +2,21 @@
 source 'https://rubygems.org'
 
 # Core CLI Gems
-gem 'thor', '~> 1.2' # For robust CLI command parsing and subcommands
-gem 'colorize', '~> 0.8' # For colorful console output
-gem 'tty-prompt', '~> 0.23' # For interactive CLI prompts (optional, but enhances UX)
+gem 'thor' # For robust CLI command parsing and subcommands
+gem 'colorize' # For colorful console output
+gem 'tty-prompt' # For interactive CLI prompts (optional, but enhances UX)
 
 # Data Persistence & Security
 gem 'json' # Ruby's built-in JSON library (good to list for clarity)
-gem 'yaml' # Ruby's built-in YAML library (good to list for clarity)
-gem 'bcrypt', '~> 3.1' # For secure password hashing
+gem 'psych' # Ruby's built-in YAML library (good to list for clarity)
+gem 'bcrypt' # For secure password hashing
 
 # Date & Time (built-in, no gem needed, but useful context)
 # require 'date'
 # require 'time'
 
 # For Data Export/Import (built-in)
-# require 'csv'
+require 'csv'
 
 # Logging
 gem 'logger' # Ruby's built-in Logger class (good to list for clarity)
@@ -33,3 +33,12 @@ end
 # gem 'rufus-scheduler' # For background task reminders
 # gem 'terminal-notifier' # For macOS desktop notifications (platform specific)
 # gem 'tty-spinner' # For progress indicators
+
+# For UUID generation (already part of standard library, but good to be explicit if needed)
+# gem 'securerandom' # Often not needed in Gemfile as it's default in Ruby
+
+# For Singleton pattern (already part of standard library)
+# gem 'singleton' # Not needed in Gemfile for standard library modules
+
+# For Observer pattern (already part of standard library)
+gem 'observer' # Not needed in Gemfile for standard library modules
