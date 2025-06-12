@@ -1,0 +1,104 @@
+# .rubocop.yml
+# Inherit from the default RuboCop configuration.
+# This gives you a good starting point based on the Ruby Style Guide.
+inherit_from:
+  - .rubocop_todo.yml # Include auto-generated todo list for gradual fixing
+
+AllCops:
+  TargetRubyVersion: 3.3 # Set this to your Ruby version
+  Exclude:
+    - 'bin/**/*'
+    - 'db/**/*'
+    - 'config/**/*'
+    - 'data/**/*'
+    - 'spec/fixtures/**/*'
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'log/**/*'
+  NewCops: enable # Enable new cops when upgrading RuboCop
+
+# Layout Cops - Formatting and Whitespace
+Layout/LineLength:
+  Max: 100 # Keep lines to a maximum of 100 characters for readability
+  # Allow long lines for URLs or comments that are naturally long
+  IgnoredPatterns: ['http://', 'https://', '^#']
+
+Layout/EmptyLinesAroundBlockBody:
+  Enabled: true # Enforce empty lines around block bodies
+  Exclude: # Common exclusions for RSpec blocks
+    - 'RSpec.describe'
+    - 'context'
+    - 'describe'
+    - 'it'
+
+Layout/FirstArgumentIndentation:
+  EnforcedStyle: consistent # Consistent indentation for method arguments
+
+Layout/LeadingCommentSpace:
+  Enabled: true
+
+# Style Cops - Ruby specific idioms and best practices
+Style/StringLiterals:
+  EnforcedStyle: double_quotes # Prefer "double quotes" for consistency
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes # Double quotes inside string interpolation too
+
+Style/SymbolArray:
+  Enabled: true # Use %i for arrays of symbols
+
+Style/WordArray:
+  Enabled: true # Use %w for arrays of strings
+
+Style/HashSyntax:
+  EnforcedStyle: ruby19_no_mixed_keys # Prefer new hash syntax { key: value }
+
+Style/ClassAndModuleChildren:
+  EnforcedStyle: compact # Prefer compact style for nested classes/modules (e.g., `Module::Class`)
+
+Style/FrozenStringLiteral:
+  Enabled: true # Add `# frozen_string_literal: true` at the top of files
+  Exclude: # Exclude files where it might cause issues (e.g., some generated files)
+    - 'Gemfile'
+    - 'Rakefile'
+
+Style/AccessModifierDeclarations:
+  EnforcedStyle: outdent # `private` and `protected` keywords outdented
+
+Style/BlockDelimiters:
+  # Use braces for single-line blocks, do/end for multi-line blocks
+  # Allows for single-line `each` for example
+  EnforcedStyle: line_breaks
+
+# Naming conventions
+Naming/MethodParameterName:
+  MinNameLength: 2 # Minimum length for method parameter names
+
+# Metrics Cops - Measuring code complexity and size
+Metrics/MethodLength:
+  Max: 15 # Maximum 15 lines per method (aim for smaller, focused methods)
+Metrics/AbcSize:
+  Max: 15 # Max ABC complexity score (Assignments, Branches, Conditions)
+Metrics/CyclomaticComplexity:
+  Max: 6 # Max cyclomatic complexity (number of independent paths)
+Metrics/BlockLength:
+  Max: 25 # Maximum 25 lines for blocks (e.g., RSpec `describe` blocks)
+  ExcludedMethods: ['describe', 'context', 'it'] # Exclude RSpec blocks from this rule
+Metrics/ClassLength:
+  Max: 100 # Maximum 100 lines for a class
+Metrics/ParameterLists:
+  Max: 4 # Maximum 4 parameters for a method
+
+# Linting Cops - Potential bugs or bad practices
+Lint/AmbiguousBlockHeader:
+  Enabled: true # Catches ambiguous block headers
+
+Lint/EmptyBlock:
+  Enabled: true
+
+Lint/ShadowingOuterLocalVariable:
+  Enabled: true
+
+# Add specific cops you might want to disable or modify based on your team's preferences
+# Example:
+# Lint/UselessAssignment:
+#   Enabled: false # If you intentionally assign variables that are not used later

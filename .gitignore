@@ -1,0 +1,54 @@
+# .gitignore
+
+# Ruby Specific
+###################
+*.gem
+*.rbc
+/config/boot.rb
+/coverage/                  # SimpleCov code coverage reports
+/spec/tmp/                  # Temporary files created by tests
+
+# Bundler
+.bundle/                    # Bundler's local gem installation directory
+vendor/bundle/              # Default location for `bundle install --path vendor/bundle`
+
+# Application specific data
+# IMPORTANT: These files contain user-specific and runtime data.
+# They should NEVER be committed to Git.
+/data/                      # User data files (tasks.json, users.json, etc.)
+/log/                       # Application log files
+/tmp/                       # General temporary files
+
+# Environment files
+.env                        # For environment variables (e.g., API keys, if you ever add them)
+.env.*
+.ruby-version               # Ruby version manager config (rbenv, rvm)
+
+# Editor and IDE Specific
+###########################
+.idea/                      # JetBrains IDEs (RubyMine, IntelliJ)
+.vscode/                    # VS Code settings
+*.swp                       # Vim swap files
+*~                          # Emacs backup files
+.DS_Store                   # macOS generated files
+Thumbs.db                   # Windows generated files
+
+# Operating System Files
+.project
+.settings
+.factorypath
+.classpath
+
+# Compiled files
+*.o
+*.out
+*.lo
+*.la
+*.so
+*.dll
+*.class
+*.exe
+
+# Test-related files
+.rspec_status
+/vendor/
