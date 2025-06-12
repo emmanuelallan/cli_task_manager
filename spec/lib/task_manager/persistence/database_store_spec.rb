@@ -96,8 +96,8 @@ RSpec.describe TaskManager::Persistence::DatabaseStore do
 
     it 'allows creating and retrieving a task' do
       task = ActiveRecord::Base.connection.execute(<<-SQL)
-        INSERT INTO tasks (id, user_id, title, description, status, created_at)
-        VALUES ('test-id', 'user-1', 'Test Task', 'Test Description', 'pending', datetime('now'))
+        INSERT INTO tasks (id, user_id, title, description, status, created_at, updated_at)
+        VALUES ('test-id', 'user-1', 'Test Task', 'Test Description', 'pending', datetime('now'), datetime('now'))
       SQL
 
       result = ActiveRecord::Base.connection.execute(<<-SQL)
@@ -111,8 +111,8 @@ RSpec.describe TaskManager::Persistence::DatabaseStore do
 
     it 'allows creating and retrieving a user' do
       user = ActiveRecord::Base.connection.execute(<<-SQL)
-        INSERT INTO users (id, username, password_digest, created_at)
-        VALUES ('user-1', 'testuser', 'hashed_password', datetime('now'))
+        INSERT INTO users (id, username, password_digest, created_at, updated_at)
+        VALUES ('user-1', 'testuser', 'hashed_password', datetime('now'), datetime('now'))
       SQL
 
       result = ActiveRecord::Base.connection.execute(<<-SQL)

@@ -133,6 +133,7 @@ module TaskManager
       begin
         task = @task_service.add_task(
           title: description,
+          description: description,
           due_date: options[:due_date],
           tags: options[:tags],
           priority: options[:priority],
@@ -429,7 +430,7 @@ module TaskManager
 
       def display_tasks(tasks)
         if tasks.empty?
-          puts "\nNo tasks found for you."
+          show_empty_task_message
           return
         end
 
@@ -456,6 +457,10 @@ module TaskManager
           puts "#{status_icon} #{index + 1}. #{title_display.colorize(:cyan)} #{priority_display} #{tags_display} (Due: #{due_date_display.colorize(due_date_color)}) ID: #{task.id.colorize(:light_black)}"
         end
         puts "------------------------------------".colorize(:blue)
+      end
+
+      def show_empty_task_message
+        puts "\nNo tasks found for you."
       end
 
       def display_error(message)

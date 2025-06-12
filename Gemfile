@@ -31,6 +31,7 @@ group :development, :test do
   gem 'rubocop', '~> 1.25' # Code linter and formatter
   gem 'faker', '~> 2.18' # For generating fake data in tests
   gem 'simplecov', '~> 0.21', require: false # For code coverage reporting
+  gem 'rake' # For running Rake tasks
 end
 
 # Optional: Advanced features

@@ -80,7 +80,7 @@ module TaskManager
           end
         end
 
-        tasks
+        tasks.to_a
       end
 
       # updates task attributes

@@ -10,7 +10,6 @@ require_relative 'task_manager/models/user'
 require_relative 'task_manager/models/task'
 
 # persistence
-require_relative 'task_manager/persistence/file_store'
 require_relative 'task_manager/persistence/database_store'
 
 # services

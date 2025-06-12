@@ -71,7 +71,7 @@ module TaskManager
       # gets copy of users list
       # @return [Array<User>] list of users
       def get_all_users
-        TaskManager::Models::User.all
+        TaskManager::Models::User.all.to_a
       end
     end
   end

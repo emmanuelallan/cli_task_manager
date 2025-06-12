@@ -10,7 +10,6 @@ task :default => [:test, :lint]
 # RSpec task
 RSpec::Core::RakeTask.new(:test) do |t|
   t.pattern = 'spec/**/*_spec.rb'
-  t.warning = true
   t.rspec_opts = "--format documentation" # Nicer output
 end
 
