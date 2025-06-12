@@ -1,4 +1,3 @@
-# lib/task_manager/cli.rb
 require 'thor'
 require 'tty-prompt'
 require 'colorize'
@@ -10,6 +9,7 @@ require_relative 'models/task'
 require_relative 'models/user'
 require_relative 'core/errors'
 require_relative 'config/application_config'
+require_relative 'persistence/database_store'
 
 module TaskManager
   # handles command line interface and user interactions
@@ -22,9 +22,11 @@ module TaskManager
       super
       app_config = TaskManager::Config::ApplicationConfig.instance
       
-      @file_store = Persistence::FileStore.new
-      @user_service = Services::UserService.new(file_store: @file_store)
-      @task_service = Services::TaskService.new(file_store: @file_store)
+      # Initialize database connection
+      TaskManager::Persistence::DatabaseStore.establish_connection
+      
+      @user_service = Services::UserService.new
+      @task_service = Services::TaskService.new
       @prompt = TTY::Prompt.new(active_color: :cyan)
       setup_logger(app_config.log_file_path)
       attempt_auto_login(app_config)
@@ -57,8 +59,6 @@ module TaskManager
         user = @user_service.register_user(username, password)
         display_success("User '#{user.username}' registered successfully!")
         @logger.info("User registered: #{user.username}")
-        # Optionally, log the user in immediately after registration
-        # login_user # or set @current_user = user and task_service.set_current_user_id
       rescue TaskManager::UsernameAlreadyExistsError => e
         display_error(e.message)
         @logger.warn("Registration failed (username exists): #{username}")
@@ -89,7 +89,6 @@ module TaskManager
         @task_service.set_current_user_id(user.id)
         TaskManager::Config::ApplicationConfig.instance.set_session_user_id(user.id)
         display_success("Logged in as '#{user.username}'!")
-        # Display current user's tasks upon login
         list
       rescue TaskManager::UserNotFoundError, TaskManager::AuthenticationError => e
         display_error(e.message)
@@ -130,18 +129,18 @@ module TaskManager
     option :recurrence, aliases: :r, type: :string, desc: "Recurrence (e.g., daily, monthly)"
     option :parent_task_id, aliases: :P, type: :string, desc: "Parent task ID"
     def add(description)
-      authenticate_user! # Ensure user is logged in
+      authenticate_user!
       begin
         task = @task_service.add_task(
-          description: description,
+          title: description,
           due_date: options[:due_date],
           tags: options[:tags],
           priority: options[:priority],
           recurrence: options[:recurrence],
           parent_task_id: options[:parent_task_id]
         )
-        display_success("Task '#{task.description.colorize(:light_blue)}' added successfully with ID #{task.id}.")
-        @logger.info("Task added by #{@current_user.username}: #{task.description} (ID: #{task.id})")
+        display_success("Task '#{task.title.colorize(:light_blue)}' added successfully with ID #{task.id}.")
+        @logger.info("Task added by #{@current_user.username}: #{task.title} (ID: #{task.id})")
       rescue TaskManager::InvalidInputError => e
         display_error(e.message)
         @logger.error("Failed to add task for #{@current_user.username}: #{description} - #{e.message}")
@@ -174,9 +173,9 @@ module TaskManager
       
       # handle completion status
       if options[:completed]
-          filter_options[:completed] = true
+          filter_options[:status] = 'completed'
       elsif options[:pending]
-          filter_options[:completed] = false
+          filter_options[:status] = 'pending'
       end
 
       # apply filters
@@ -201,8 +200,9 @@ module TaskManager
         task = @task_service.find_task_by_id(task_id)
         puts "\n--- Task Details ---".colorize(:light_blue)
         puts "ID: #{task.id}".colorize(:light_black)
+        puts "Title: #{task.title.colorize(:cyan)}"
         puts "Description: #{task.description.colorize(:cyan)}"
-        puts "Status: #{task.completed ? 'Completed'.colorize(:green) : 'Pending'.colorize(:yellow)}"
+        puts "Status: #{task.status == 'completed' ? 'Completed'.colorize(:green) : 'Pending'.colorize(:yellow)}"
         puts "Due Date: #{task.due_date ? task.due_date.strftime('%Y-%m-%d').colorize(:magenta) : 'N/A'} #{"(OVERDUE)".colorize(:red) if task.overdue?}"
         puts "Tags: #{task.tags.empty? ? 'None' : task.tags.join(', ').colorize(:light_magenta)}"
         puts "Priority: #{task.priority || 'N/A'}".colorize(:white)
@@ -226,7 +226,7 @@ module TaskManager
       authenticate_user!
       begin
         task = @task_service.complete_task(task_id)
-        display_success("Task '#{task.description.colorize(:light_blue)}' (ID: #{task.id}) marked as completed.")
+        display_success("Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) marked as completed.")
         @logger.info("Task completed by #{@current_user.username}: #{task.id}")
       rescue TaskManager::TaskNotFoundError => e
         display_error(e.message)
@@ -242,7 +242,7 @@ module TaskManager
       authenticate_user!
       begin
         task = @task_service.reopen_task(task_id)
-        display_success("Task '#{task.description.colorize(:light_blue)}' (ID: #{task.id}) marked as pending.")
+        display_success("Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) marked as pending.")
         @logger.info("Task reopened by #{@current_user.username}: #{task.id}")
       rescue TaskManager::TaskNotFoundError => e
         display_error(e.message)
@@ -258,18 +258,20 @@ module TaskManager
       `task_manager edit ID` Edits a task.
 
       Options:
-        --description, -d DESCRIPTION New description for the task.
-        --due-date, -D DATE         New due date (YYYY-MM-DD), use 'nil' to clear.
-        --tags, -t TAG1,TAG2        New comma-separated tags, use 'none' to clear.
-        --completed, -c             Mark as completed.
-        --pending, -p               Mark as pending.
-        --priority, -P PRIORITY     Set new priority (e.g., high, medium, low), use 'nil' to clear.
+        --title, -t TITLE           New title for the task.
+        --description, -d DESC      New description for the task.
+        --due-date, -D DATE        New due date (YYYY-MM-DD), use 'nil' to clear.
+        --tags, -T TAG1,TAG2       New comma-separated tags, use 'none' to clear.
+        --completed, -c            Mark as completed.
+        --pending, -p              Mark as pending.
+        --priority, -P PRIORITY    Set new priority (e.g., high, medium, low), use 'nil' to clear.
         --recurrence, -r RECURRENCE Set new recurrence (e.g., daily, monthly), use 'nil' to clear.
-        --parent-task-id, -I ID     Set new parent task ID, use 'nil' to clear.
+        --parent-task-id, -I ID    Set new parent task ID, use 'nil' to clear.
     LONGDESC
+    option :title, aliases: :t, type: :string, desc: "New title"
     option :description, aliases: :d, type: :string, desc: "New description"
     option :due_date, aliases: :D, type: :string, desc: "New due date (YYYY-MM-DD). Use 'nil' to clear."
-    option :tags, aliases: :t, type: :array, desc: "New tags (comma-separated). Use 'none' to clear."
+    option :tags, aliases: :T, type: :array, desc: "New tags (comma-separated). Use 'none' to clear."
     option :completed, aliases: :c, type: :boolean, desc: "Mark as completed"
     option :pending, aliases: :p, type: :boolean, desc: "Mark as pending"
     option :priority, aliases: :P, type: :string, desc: "New priority. Use 'nil' to clear."
@@ -280,6 +282,7 @@ module TaskManager
       updated_attributes = {}
 
       # map CLI options to Task model attributes, handling special values like 'nil' or 'none'
+      updated_attributes[:title] = options[:title] if options.key?(:title)
       updated_attributes[:description] = options[:description] if options.key?(:description)
       if options.key?(:due_date)
         updated_attributes[:due_date] = (options[:due_date].downcase == 'nil' ? nil : options[:due_date])
@@ -299,9 +302,9 @@ module TaskManager
 
       # handle completed/pending flags
       if options.key?(:completed)
-        updated_attributes[:completed] = true
+        updated_attributes[:status] = 'completed'
       elsif options.key?(:pending)
-        updated_attributes[:completed] = false
+        updated_attributes[:status] = 'pending'
       end
 
       if updated_attributes.empty?
@@ -311,7 +314,7 @@ module TaskManager
 
       begin
         task = @task_service.update_task(task_id, updated_attributes)
-        display_success("Task '#{task.description.colorize(:light_blue)}' (ID: #{task.id}) updated successfully.")
+        display_success("Task '#{task.title.colorize(:light_blue)}' (ID: #{task.id}) updated successfully.")
         @logger.info("Task updated by #{@current_user.username}: #{task.id} with #{updated_attributes}")
       rescue TaskManager::TaskNotFoundError, TaskManager::InvalidInputError => e
         display_error(e.message)
@@ -399,7 +402,6 @@ module TaskManager
     end
 
     # Default command when no subcommand is given (e.g., just `task_manager`)
-    # Can be configured to show help or list tasks if logged in.
     def self.exit_on_failure?
       true # Exit with non-zero status code on error
     end
@@ -433,10 +435,10 @@ module TaskManager
 
         puts "\n--- Your Tasks (#{@current_user.username}) ---".colorize(:blue)
         tasks.each_with_index do |task, index|
-          status_icon = task.completed ? "✓".colorize(:green) : "✗".colorize(:yellow)
+          status_icon = task.status == 'completed' ? "✓".colorize(:green) : "✗".colorize(:yellow)
           due_date_display = task.due_date ? task.due_date.strftime('%Y-%m-%d') : 'N/A'
           due_date_color = :white
-          if task.overdue? && !task.completed
+          if task.overdue? && task.status != 'completed'
             due_date_color = :red
           elsif task.due_date && task.due_date <= Date.today + 7 # Due within next 7 days
             due_date_color = :light_red
@@ -445,13 +447,13 @@ module TaskManager
           tags_display = task.tags.empty? ? "" : " " + "[#{task.tags.join(', ').colorize(:light_magenta)}]"
           priority_display = task.priority ? " (#{task.priority.upcase.colorize(:magenta)})" : ""
 
-          # Truncate description for display
-          description_display = task.description
-          if description_display.length > 50
-            description_display = description_display[0..47] + "..."
+          # Truncate title for display
+          title_display = task.title
+          if title_display.length > 50
+            title_display = title_display[0..47] + "..."
           end
 
-          puts "#{status_icon} #{index + 1}. #{description_display.colorize(:cyan)} #{priority_display} #{tags_display} (Due: #{due_date_display.colorize(due_date_color)}) ID: #{task.id.colorize(:light_black)}"
+          puts "#{status_icon} #{index + 1}. #{title_display.colorize(:cyan)} #{priority_display} #{tags_display} (Due: #{due_date_display.colorize(due_date_color)}) ID: #{task.id.colorize(:light_black)}"
         end
         puts "------------------------------------".colorize(:blue)
       end

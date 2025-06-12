@@ -18,6 +18,10 @@ gem 'bcrypt' # For secure password hashing
 # For Data Export/Import (built-in)
 require 'csv'
 
+# data storage
+gem 'sqlite3'
+gem 'activerecord'
+
 # Logging
 gem 'logger' # Ruby's built-in Logger class (good to list for clarity)
 
