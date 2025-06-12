@@ -28,7 +28,7 @@ module TaskManager
           "#{datetime.strftime('%Y-%m-%d %H:%M:%S')} [TaskService] #{msg}\n"
         end
         
-        # Add system notifier as observer
+        # adds system notifier as observer
         system_notifier = TaskManager::Notifications::SystemNotifier.new
         @notifier.add_observer(system_notifier)
       end

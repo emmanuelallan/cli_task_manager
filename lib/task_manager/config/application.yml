@@ -1,5 +1,3 @@
-# task manager global configuration
-
 # data storage location (relative to user home)
 data_directory_name: .task_manager_data
 

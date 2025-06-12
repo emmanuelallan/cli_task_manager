@@ -97,7 +97,7 @@ module TaskManager
         TaskManager::Config::ApplicationConfig.instance.set_session_user_id(user.id)
         display_success("✅ Logged in as '#{user.username}'!")
         
-        # Check for overdue and due soon tasks after login
+        # checks for overdue and due soon tasks after login
         check_task_notifications
         
         list

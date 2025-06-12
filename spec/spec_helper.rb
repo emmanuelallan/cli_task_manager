@@ -1,4 +1,3 @@
-# spec/spec_helper.rb
 require 'bundler/setup'
 require 'simplecov' # For code coverage, must be at the very top
 SimpleCov.start do

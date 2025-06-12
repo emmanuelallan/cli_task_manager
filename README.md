@@ -2,6 +2,8 @@
 
 A powerful, feature-rich command-line task management application built with Ruby. Manage your tasks efficiently with a beautiful CLI interface, robust data persistence, and advanced task organization features.
 
+![CLI Task Manager Interface](example.png)
+
 ## ✨ Features
 
 - 🔐 **Secure User Management**

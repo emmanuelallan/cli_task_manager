@@ -10,16 +10,15 @@ module TaskManager
           config = TaskManager::Config::ApplicationConfig.instance
           db_path = File.join(config.data_directory, 'task_manager.db')
           
-          # Ensure database directory exists
+          # ensures database directory exists
           FileUtils.mkdir_p(File.dirname(db_path))
 
-          # Establish connection
+          # establishes connection
           ActiveRecord::Base.establish_connection(
             adapter: 'sqlite3',
             database: db_path
           )
 
-          # Run migrations
           run_migrations
         end
 
@@ -27,17 +26,17 @@ module TaskManager
           config = TaskManager::Config::ApplicationConfig.instance
           db_path = File.join(config.data_directory, 'task_manager.db')
           
-          # Remove existing database
+          # remove existing database
           FileUtils.rm_f(db_path)
           
-          # Re-establish connection and run migrations
+          # re-establish connection and run migrations
           establish_connection
         end
 
         private
 
         def run_migrations
-          # Create users table if it doesn't exist
+          # creates users table if it doesn't exist
           unless ActiveRecord::Base.connection.table_exists?(:users)
             ActiveRecord::Base.connection.create_table :users, id: false do |t|
               t.string :id, null: false, primary_key: true
@@ -47,12 +46,12 @@ module TaskManager
               t.timestamps null: false
             end
 
-            # Add indexes
+            # adds indexes
             ActiveRecord::Base.connection.add_index :users, :id, unique: true
             ActiveRecord::Base.connection.add_index :users, :username, unique: true
           end
 
-          # Create tasks table if it doesn't exist
+          # creates tasks table if it doesn't exist
           unless ActiveRecord::Base.connection.table_exists?(:tasks)
             ActiveRecord::Base.connection.create_table :tasks, id: false do |t|
               t.string :id, null: false, primary_key: true
@@ -70,7 +69,7 @@ module TaskManager
               t.timestamps null: false
             end
 
-            # Add indexes
+            # adds indexes
             ActiveRecord::Base.connection.add_index :tasks, :id, unique: true
             ActiveRecord::Base.connection.add_index :tasks, :user_id
             ActiveRecord::Base.connection.add_index :tasks, :status
@@ -79,7 +78,7 @@ module TaskManager
             ActiveRecord::Base.connection.add_index :tasks, :created_at
             ActiveRecord::Base.connection.add_index :tasks, :updated_at
           else
-            # Check if status column exists, add it if missing
+            # checks if status column exists, adds it if missing
             unless ActiveRecord::Base.connection.column_exists?(:tasks, :status)
               ActiveRecord::Base.connection.add_column :tasks, :status, :string, null: false, default: 'pending'
               ActiveRecord::Base.connection.add_index :tasks, :status
