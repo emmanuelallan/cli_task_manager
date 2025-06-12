@@ -15,6 +15,8 @@ require 'rspec'
 require 'active_record'
 require 'fileutils'
 require 'bcrypt'
+require 'securerandom'
+require_relative '../lib/task_manager/persistence/database_store'
 
 # RSpec configuration
 RSpec.configure do |config|
@@ -40,10 +42,30 @@ RSpec.configure do |config|
   config.order = :random
   Kernel.srand config.seed
 
-  # Clean up test data after each spec
+  # Set up test database before each test
+  config.before(:each) do
+    # Clean up any test database files
+    test_db_path = File.join(ENV['TMPDIR'] || '/tmp', 'task_manager_test', 'task_manager.db')
+    FileUtils.rm_rf(File.dirname(test_db_path)) if File.exist?(test_db_path)
+    
+    # Ensure database connection is established
+    TaskManager::Persistence::DatabaseStore.establish_connection
+  end
+
+  # Clean up after each test
   config.after(:each) do
     # Clean up any test database files
     test_db_path = File.join(ENV['TMPDIR'] || '/tmp', 'task_manager_test', 'task_manager.db')
     FileUtils.rm_rf(File.dirname(test_db_path)) if File.exist?(test_db_path)
+  end
+
+  config.before(:suite) do
+    # Reset database before running tests
+    TaskManager::Persistence::DatabaseStore.reset_database
+  end
+
+  config.before(:each) do
+    # Clean up any existing test data
+    TaskManager::Models::Task.delete_all if defined?(TaskManager::Models::Task)
   end
 end

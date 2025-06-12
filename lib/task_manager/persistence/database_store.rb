@@ -23,6 +23,17 @@ module TaskManager
           run_migrations
         end
 
+        def reset_database
+          config = TaskManager::Config::ApplicationConfig.instance
+          db_path = File.join(config.data_directory, 'task_manager.db')
+          
+          # Remove existing database
+          FileUtils.rm_f(db_path)
+          
+          # Re-establish connection and run migrations
+          establish_connection
+        end
+
         private
 
         def run_migrations
@@ -47,14 +58,15 @@ module TaskManager
               t.string :id, null: false, primary_key: true
               t.string :user_id, null: false
               t.string :title, null: false
-              t.text :description
-              t.string :status, default: 'pending'
+              t.text :description, null: false
+              t.string :status, null: false, default: 'pending'
               t.date :due_date
               t.json :tags, default: '[]'
               t.datetime :completed_at
               t.string :priority
-              t.string :recurrence
+              t.json :recurrence, default: '{}'
               t.string :parent_task_id
+              t.boolean :completed, default: false
               t.timestamps null: false
             end
 
@@ -63,6 +75,15 @@ module TaskManager
             ActiveRecord::Base.connection.add_index :tasks, :user_id
             ActiveRecord::Base.connection.add_index :tasks, :status
             ActiveRecord::Base.connection.add_index :tasks, :due_date
+            ActiveRecord::Base.connection.add_index :tasks, :priority
+            ActiveRecord::Base.connection.add_index :tasks, :created_at
+            ActiveRecord::Base.connection.add_index :tasks, :updated_at
+          else
+            # Check if status column exists, add it if missing
+            unless ActiveRecord::Base.connection.column_exists?(:tasks, :status)
+              ActiveRecord::Base.connection.add_column :tasks, :status, :string, null: false, default: 'pending'
+              ActiveRecord::Base.connection.add_index :tasks, :status
+            end
           end
         end
       end
@@ -72,4 +93,4 @@ module TaskManager
       end
     end
   end
-end 
+end
